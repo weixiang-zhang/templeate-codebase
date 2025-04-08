@@ -2,26 +2,19 @@ import os
 import subprocess
 from types import SimpleNamespace
 import math
-
-STORE_TRUE = None
-DIV2K_TEST = "./data/div2k/test_data"
-DIV2K_TRAIN = "./data/div2k/train_data"
-KODAK = "./data/Kodak"
-TEXT_TEST = "./data/text/test_data"
-DEMO_IMG = os.path.join(DIV2K_TEST, "00.png")
+from config import CONFIG
 
 
-
-def run_subprocess(idx_list, gpu_list, exp_num):
+def run_subprocess(param_list, gpu_list, exp_num):
     processes = []
 
-    # assert len(idx_list) == len(gpu_list)
-    _len = min(len(idx_list), len(gpu_list))
-    idx_list = idx_list[:_len]
+    # assert len(param_list) == len(gpu_list)
+    _len = min(len(param_list), len(gpu_list))
+    param_list = param_list[:_len]
     gpu_list = gpu_list[:_len]
 
-    for idx, use_cuda in zip(idx_list, gpu_list):
-        pm = ParamManager(idx=idx, exp_num=exp_num)
+    for param, use_cuda in zip(param_list, gpu_list):
+        pm = ParamManager(param=param, exp_num=exp_num)
         cmd_str = pm.export_cmd_str(use_cuda=[use_cuda])
         ###### print cmd str for debugger ######
         # exit()
@@ -34,47 +27,46 @@ def run_subprocess(idx_list, gpu_list, exp_num):
         process.wait()
 
 
-def run_tasks(exp_num, param_idxs, gpu_list):
+def run_tasks(exp_num, param_list, gpu_list):
 
     gpus = len(gpu_list)
-    rounds = math.ceil(len(param_idxs) / gpus)
+    rounds = math.ceil(len(param_list) / gpus)
     print("rounds: ", rounds)
 
     for i in range(rounds):
-        cur_param_idxs = param_idxs[i * gpus : min(len(param_idxs), (i + 1) * gpus)]
-        cur_len = len(param_idxs)
+        cur_param_list = param_list[i * gpus : min(len(param_list), (i + 1) * gpus)]
+        cur_len = len(param_list)
         gpu_list = gpu_list[:cur_len]
-        run_subprocess(cur_param_idxs, gpu_list, exp_num)
+        run_subprocess(cur_param_list, gpu_list, exp_num)
 
 
 
 class ParamManager(object):
     def __init__(self, **kw):
-        self._tag = "exp"
+        
         self.p = SimpleNamespace()
-        self._exp = ""
-
         self._set_exp(**kw)
 
     def _set_default_parmas(self):
         self.p.model_type = "siren"
-        self.p.input_path = DEMO_IMG
-        self.p.eval_lpips = STORE_TRUE
+        self.p.eval_lpips = CONFIG.STORE_TRUE
+        self._use_single_data()
 
-    def _set_exp(self, idx=0, exp_num="000"):
-        self._set_default_parmas()
+    def _set_exp(self, param="", exp_num="000"):
         self.exp_num = exp_num
-        eval(f"self._set_exp_{exp_num}(idx)")
-        self.p.tag = f"{self._exp}"
+        self._exp_name = f"exp_{exp_num}"
+        self._set_default_parmas()
+        self.p.tag = param
+        eval(f"self._set_exp_{exp_num}(param)")
         self.p.lr = self._get_lr_by_model(self.p.model_type)
-        self.p.up_folder_name = self._tag
+        self.p.up_folder_name = self._exp_name
 
     def _convert_dict_args_list(self):
         args_dic = vars(self.p)
         args_list = []
         for key, val in args_dic.items():
             args_list.append(f"--{key}")
-            if val is not STORE_TRUE:
+            if val is not CONFIG.STORE_TRUE:
                 args_list.append(str(val))
         self._print_args_list(args_list)
         return args_list
@@ -111,37 +103,33 @@ class ParamManager(object):
         else:
             raise NotImplementedError
 
-    def _use_single_data(self, pic_index="00", datasets = DIV2K_TEST):
+    def _use_single_data(self, pic_index="00", datasets = CONFIG.DIV2K_TEST):
         if hasattr(self.p, "multi_data"):
             delattr(self.p, "multi_data")
 
         self.p.input_path = os.path.join(datasets, f"{pic_index}.png")
-        self._tag += f"_single_{pic_index}"
+        self._exp_name += f"_single_{pic_index}"
 
-    def _use_datasets(self, type="div2k_test"):
-        self.p.multi_data = STORE_TRUE
-        if type == "div2k_test":
-            self.p.input_path = DIV2K_TEST
-        elif type == "div2k_train":
-            self.p.input_path = DIV2K_TRAIN
-        elif type == "kodak":
-            self.p.input_path = KODAK
-        elif type == "text_test":
-            self.p.input_path = TEXT_TEST
-        self._tag += f"_{type}"
+    def _use_datasets(self, dataset=CONFIG.DIV2K_TEST):
+        self.p.multi_data = CONFIG.STORE_TRUE
+        self.p.input_path = dataset
+        dataset_name = os.path.basename(dataset)
+        self._exp_name += f"_{dataset_name}"
 
 
-    def _set_exp_001(self, _exp):
-        self._tag = f"001_exp"
-        self._exp = f"{_exp}"
+    def _set_exp_001(self, param):
+        
+        ####  update it if you want ... 
+        # self.p.tag = param
+        self._exp_name += "_50_epoch"
 
-        self.p.log_epoch = 500 
-        self.p.num_epochs = 5000
+        self.p.log_epoch = 50 
+        self.p.num_epochs = 50
 
-        self.p.model = _exp
+        self.p.model = param
 
-        self._use_single_data("00")
-        # self._use_datasets()
+        # self._use_single_data("00")
+        self._use_datasets()
 
 
 
