@@ -80,50 +80,6 @@ class Siren(nn.Module):
         return output
 
 
-# todo: 后续抽出来
-class BranchSiren(Siren):
-    def __init__(self, branch, *args, **kw):
-        super().__init__(*args, **kw)
-        print("branch siren")
-        self.branch = branch
-
-        to_copy_layer = self.net[-2]
-        branch_ouput = int(self.net[-1].out_features / branch)
-
-        self.net = self.net[:-2]
-        self.branches = nn.ModuleList(
-            [
-                nn.Sequential(
-                    copy.deepcopy(to_copy_layer),
-                    nn.Linear(to_copy_layer.out_features, branch_ouput),
-                )
-                for _ in range(branch)
-            ]
-        )
-    def forward(self, coords):
-        feat = self.net(coords)
-        output_list = [branch(feat) for branch in self.branches]
-        output = torch.cat(output_list, dim=-1)
-        return output
-    
-    def forward_branch(self, coords, branch_idx=0):
-        feat = self.net(coords)
-        output = self.branches[branch_idx](feat)
-        return output
-
-    def set_branch_grad(self, branch_idx=0):
-        # 该方法目前有bug: loss backward时候会被计算两次
-        for i, branch in enumerate(self.branches):
-            if i == branch_idx:
-                continue
-            branch.requires_grad_(False)
-
-    def get_branch_parameters(self, branch_idx=0):
-        return list(self.net.parameters()) + list(
-            self.branches[branch_idx].parameters()
-        )
-
-
 ## PEMLP
 class PositionalEncoding(nn.Module):
     def __init__(self, in_channels, N_freqs, logscale=True):
