@@ -5,7 +5,7 @@ from util.logger import log
 from util.recorder import recorder
 from opt import Opt
 
-from train_inr import train_inr_set
+from inr_trainer.train import train_inr_set
 
 
 

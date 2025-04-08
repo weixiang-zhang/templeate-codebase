@@ -1,6 +1,6 @@
 import copy
 import os
-from trainer.img_trainer import ImageTrainer
+from inr_trainer.img_trainer import ImageTrainer
 
 def train_single_inr(args):
     trainer = ImageTrainer(args)

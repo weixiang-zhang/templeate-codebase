@@ -3,7 +3,6 @@ from util.logger import log
 from util.tensorboard import writer
 from util.misc import gen_cur_time
 from util.recorder import recorder
-from util.io import cvt_all_tensor
 from components.inr_transform import Transform
 
 import torch

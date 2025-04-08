@@ -1,6 +1,6 @@
 import os
 
-def demo(use_cuda=0):
+def inr_demo(use_cuda=0):
     '''Args for EVOS(stepwise scheduler) with only one image'''
     args = [
         "--model_type",
@@ -31,4 +31,4 @@ def demo(use_cuda=0):
 
 
 if __name__ == "__main__":
-    demo(0)
+    inr_demo(0)

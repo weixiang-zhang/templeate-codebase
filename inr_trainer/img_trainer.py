@@ -2,7 +2,7 @@ from util.logger import log
 from util.tensorboard import writer
 from util import io
 
-from trainer.base_trainer import BaseTrainer
+from inr_trainer.base_trainer import BaseTrainer
 from components.ssim import compute_ssim_loss
 from components.lpips import Calc_LPIPS
 
